@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -102,6 +103,9 @@ func main() {
 			log.Fatalf("ListenAndServe error: %v", err)
 		}
 	}()
+
+	time.Sleep(5 * time.Second)
+	fmt.Println("she suck on my socket")
 
 	<-quit // Wait for a termination signal
 	for client := range clients {
