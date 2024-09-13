@@ -46,7 +46,6 @@ func HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 		ws.Close()
 	}()
 
-	ws.WriteMessage(websocket.TextMessage, []byte("We're so in"))
 	go func() {
 		<-ctx.Done()
 		slog.Warn("It's so over one of the ws conections has been closed")
@@ -64,13 +63,11 @@ func HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 
 		clientsMu.Lock()
 		for client := range clients {
-			if client != ws {
-				err := client.WriteMessage(websocket.TextMessage, msg)
-				if err != nil {
-					slog.Error("It's so over couldn't send a message to a client", "err", err)
-					client.Close()
-					delete(clients, client)
-				}
+			err := client.WriteMessage(websocket.TextMessage, msg)
+			if err != nil {
+				slog.Error("It's so over couldn't send a message to a client", "err", err)
+				client.Close()
+				delete(clients, client)
 			}
 		}
 		clientsMu.Unlock()

@@ -5,11 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Control me bbg</title>
-    <script src="/static/index.js"></script>
 </head>
 
 <body>
     <div id="messages"></div>
+
+    <form action="" id="sendMessage">
+        <input type="text" placeholder="Send Message: " id="newMessage" />
+        <input type="submit" value="Send Message" />
+    </form>
+
+    <script src="/static/index.js"></script>
 </body>
 
 </html>

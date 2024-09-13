@@ -14,7 +14,7 @@ type Page struct {
 	// Port string
 }
 
-var templates = template.Must(template.ParseFiles("./view/index.html"))
+var templates = template.Must(template.ParseFiles("./view/index.gohtmltmpl"))
 
 func main() {
 	var port string
@@ -22,7 +22,7 @@ func main() {
 	flag.Parse()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		err := templates.ExecuteTemplate(w, "index.html", Page{})
+		err := templates.ExecuteTemplate(w, "index.gohtmltmpl", Page{})
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
