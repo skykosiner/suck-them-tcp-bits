@@ -9,11 +9,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// type Server struct {
-// 	clients   map[*websocket.Conn]bool
-// 	clientsMu sync.Mutex
-// 	upgrader  websocket.Upgrader
-// }
+type Message struct {
+	Name    string `json:"name"`
+	Message string `json:"message"`
+}
 
 var (
 	clients   = make(map[*websocket.Conn]bool)
@@ -52,18 +51,19 @@ func HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	for {
-		_, msg, err := ws.ReadMessage()
+		var msg Message
+		err := ws.ReadJSON(&msg)
 		if err != nil {
 			slog.Error("Failed to read websocket message", "err", err)
 			cancel()
 			break
 		}
 
-		slog.Warn("Got a message from client", "msg", string(msg))
+		slog.Warn("Got a message from client", "msg", msg)
 
 		clientsMu.Lock()
 		for client := range clients {
-			err := client.WriteMessage(websocket.TextMessage, msg)
+			err := client.WriteJSON(&msg)
 			if err != nil {
 				slog.Error("It's so over couldn't send a message to a client", "err", err)
 				client.Close()
