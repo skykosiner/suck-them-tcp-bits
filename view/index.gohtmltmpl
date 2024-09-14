@@ -5,25 +5,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Control me bbg</title>
-    <style>
-        .hide {
-            display: none;
-        }
-    </style>
+
+    <link rel="stylesheet" href="/static/index.css" />
 </head>
 
 <body>
-    <form action="" id="setUsername">
-        <input type="text" placeholder="Please enter your username" id="username" />
-        <input type="submit" value="Set username" />
-    </form>
+    <div class="center">
+        <div>
+            <form action="" id="setUsername">
+                <input type="text" placeholder="Please enter your username" id="username" />
+                <input type="submit" value="Set username" />
+            </form>
 
-    <div class="hide" id="messages"></div>
+            <div class="hide" id="messages"></div>
 
-    <form class="hide" action="" id="sendMessage">
-        <input type="text" placeholder="Send Message: " id="newMessage" />
-        <input type="submit" value="Send Message" />
-    </form>
+            <form class="hide" action="" id="sendMessage">
+                <input type="text" placeholder="Send Message: " id="newMessage" />
+                <input type="submit" value="Send Message" />
+            </form>
+        </div>
+    </div>
 
     <script src="/static/index.js"></script>
 </body>

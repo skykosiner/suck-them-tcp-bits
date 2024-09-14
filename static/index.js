@@ -1,17 +1,29 @@
 const usernameForm = document.getElementById("setUsername");
 const messagesDiv = document.getElementById("messages");
 const newMessageForm = document.getElementById("sendMessage");
-
 const host = window.location.host;
-
 const ws = new WebSocket(`ws://${host}/ws`)
+
+/**
+    * Updates the #messages div with all the old messages currently stored on the server
+*/
+async function getOldMessages() {
+    /** @type {import("./types.ts").Message[]}*/
+    const messages = await fetch("/get-messages").then(resp => resp.json());
+
+    messages.map(msg => {
+        messagesDiv.innerHTML += `<p>${msg.name}: ${msg.message}</p>`;
+    })
+}
+
+getOldMessages();
 
 ws.onopen = function() {
     console.log("We're so in");
 }
 
 /**
-    @param {import("./types.ts").WsMessage} event
+    * @param {import("./types.ts").WsMessage} event
 */
 ws.onmessage = function(event) {
     /** @type {import("./types.ts").Message}*/

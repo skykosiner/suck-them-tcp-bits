@@ -2,6 +2,7 @@ package ws
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -24,6 +25,7 @@ var (
 			return true
 		},
 	}
+	messages []Message
 )
 
 func HandleWebsocket(w http.ResponseWriter, r *http.Request) {
@@ -60,6 +62,7 @@ func HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 		}
 
 		slog.Warn("Got a message from client", "msg", msg)
+		messages = append(messages, msg)
 
 		clientsMu.Lock()
 		for client := range clients {
@@ -70,7 +73,18 @@ func HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 				delete(clients, client)
 			}
 		}
-		clientsMu.Unlock()
 
+		clientsMu.Unlock()
 	}
+}
+
+func GetMessages(w http.ResponseWriter, r *http.Request) {
+	jsonMessages, err := json.Marshal(&messages)
+	if err != nil {
+		slog.Error("Error sending the messages.", "err", err)
+		w.Write([]byte("It's so over."))
+		return
+	}
+
+	w.Write(jsonMessages)
 }

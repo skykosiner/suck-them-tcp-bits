@@ -31,6 +31,7 @@ func main() {
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	http.HandleFunc("/ws", ws.HandleWebsocket)
+	http.HandleFunc("/get-messages", ws.GetMessages)
 
 	slog.Warn("Listening now on", "port", port)
 	slog.Error("Server is so joever", http.ListenAndServe(fmt.Sprintf(":%s", port), nil))

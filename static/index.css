@@ -1,0 +1,30 @@
+* {
+    margin: 0;
+    padding: 0;
+    background-color: #F2F2F2;
+}
+
+.center {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+}
+
+#messages {
+    width: 80%;
+}
+
+#sendMessage {
+    background-color: #FFFFFF;
+    padding: 1rem;
+    box-shadow: 0 3px 10px rgb(0 0 0 / 0.2);
+}
+
+#sendMessage * {
+    border: none;
+    background-color: #FFFFFF;
+}
+
+.hide {
+    display: none;
+}
