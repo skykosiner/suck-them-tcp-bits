@@ -18,10 +18,6 @@ async function getOldMessages() {
 
 getOldMessages();
 
-ws.onopen = function() {
-    console.log("We're so in");
-}
-
 /**
     * @param {import("./types.ts").WsMessage} event
 */
@@ -34,7 +30,7 @@ ws.onmessage = function(event) {
 }
 
 ws.onerror = function(event) {
-    console.log(event);
+    console.log("It's so over. Websocket error", event);
 }
 
 usernameForm.addEventListener("submit", (e) => {
