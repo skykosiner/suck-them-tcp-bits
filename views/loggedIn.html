@@ -4,7 +4,11 @@
 <div class="center">
     <div>
         <h1>Hello {{ .Username }}</h1>
-        <div id="users" hx-get="/get-users" hx-trigger="load" hx-swap="innerHTML"></div>
+
+        <div>
+            <h2>Users Online:</h2>
+            <div id="users" hx-get="/get-users" hx-trigger="load, refresh" hx-swap="innerHTML"></div>
+        </div>
 
         <div id="messages" hx-get="/get-messages" hx-trigger="load" hx-swap="innerHTML"></div>
 

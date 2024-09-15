@@ -11,3 +11,8 @@ export type Message = {
 export type User = {
     username: string,
 }
+
+export type MessageUserState = {
+    username: string,
+    leaved: boolean,
+}

@@ -3,7 +3,6 @@ package ws
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -16,6 +15,11 @@ import (
 type Message struct {
 	Username string `json:"username"`
 	Message  string `json:"message"`
+}
+
+type MessageUserState struct {
+	Username string `json:"username"`
+	Leaved   bool   `json:"leaved"`
 }
 
 var (
@@ -47,8 +51,20 @@ func HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 
 	clientsMu.Lock()
 	clients[ws] = username
-	fmt.Println(clients)
 	clientsMu.Unlock()
+
+	msg := MessageUserState{
+		username,
+		false,
+	}
+
+	for client := range clients {
+		err := client.WriteJSON(msg)
+		if err != nil {
+			slog.Error("Error updating client state", "error", err)
+			return
+		}
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer func() {
@@ -64,6 +80,19 @@ func HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 		}
 
 		delete(clients, ws)
+		msg := MessageUserState{
+			username,
+			true,
+		}
+
+		for client := range clients {
+			err := client.WriteJSON(msg)
+			if err != nil {
+				slog.Error("Error updating client state", "error", err)
+				return
+			}
+		}
+
 		clientsMu.Unlock()
 		ws.Close()
 	}()

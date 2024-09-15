@@ -16,9 +16,9 @@ import (
 	"github.com/skykosiner/golang-context/pkg/ws"
 )
 
-var templates = template.Must(template.ParseGlob("views/*.html"))
-
-const dbKey string = "db"
+var (
+	templates = template.Must(template.ParseGlob("views/*.html"))
+)
 
 type Page struct {
 	Title    string
@@ -31,15 +31,14 @@ type HTTPHandler struct {
 	db  *sql.DB
 }
 
-func (p *Page) UpdateValues(loggedIn bool, username string) {
-	p.LoggedIn = loggedIn
-	p.Username = username
+func NewHTTPHandler(db *sql.DB, ctx context.Context) *HTTPHandler {
+	return &HTTPHandler{ctx: ctx, db: db}
 }
 
-func NewHTTPHandler(db *sql.DB, ctx context.Context) *HTTPHandler {
-	return &HTTPHandler{
-		ctx,
-		db,
+func (h *HTTPHandler) renderTemplate(w http.ResponseWriter, tmpl string, data interface{}) {
+	w.Header().Set("Content-Type", "text/html")
+	if err := templates.ExecuteTemplate(w, tmpl, data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
@@ -49,24 +48,15 @@ func (h *HTTPHandler) getUsers(w http.ResponseWriter, r *http.Request) {
 
 	users, err := user.GetUsers(ctx, h.db)
 	if err != nil {
-		slog.Error("Error getting all the users", "error", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("It's so over"))
+		slog.Error("Error getting users", "error", err)
+		http.Error(w, "Error getting users", http.StatusInternalServerError)
 		return
 	}
 
-	tmpl := `<ul>
-	{{range .}}
-		<li>{{.Username}}</li>
-	{{end}}
-</ul>`
-	t, err := template.New("users").Parse(tmpl)
-	if err != nil {
+	tmpl := `<ul>{{range .}}<li>{{.Username}}</li>{{end}}</ul>`
+	if err := template.Must(template.New("users").Parse(tmpl)).Execute(w, users); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
-	w.Header().Set("Content-Type", "text/html")
-	t.Execute(w, users)
 }
 
 func (h *HTTPHandler) addUser(w http.ResponseWriter, r *http.Request) {
@@ -79,107 +69,77 @@ func (h *HTTPHandler) addUser(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	username := r.FormValue("username")
-	if len(username) <= 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Please make sure you provide a username."))
+	if username == "" {
+		http.Error(w, "Please provide a username.", http.StatusBadRequest)
 		return
 	}
 
-	exists, err := user.UserExists(username, h.db, ctx)
-	if err != nil {
-		slog.Error("It's so over", "error", err)
-		w.Write([]byte("JOEVER"))
+	if exists, err := user.UserExists(username, h.db, ctx); err != nil || exists {
+		msg := "Error occurred"
+
+		if exists {
+			msg = "User already exists"
+		}
+
+		http.Error(w, msg, http.StatusBadRequest)
 		return
 	}
 
-	if exists {
-		w.Write([]byte("Sorry a user with that username already exists."))
+	if _, err := sq.Insert("users").Columns("username").Values(username).RunWith(h.db).ExecContext(ctx); err != nil {
+		slog.Error("Error adding user", "error", err)
+		http.Error(w, "Error adding user", http.StatusInternalServerError)
 		return
 	}
 
-	query, args, err := sq.Insert("users").Columns("username").Values(username).ToSql()
-	if err != nil {
-		slog.Error("Error building sql query for new user", "error", err)
-		w.Write([]byte("Error please try again."))
-		return
+	http.SetCookie(w, &http.Cookie{Name: "user", Value: username})
+	w.Write([]byte("User added"))
+}
+
+func (h *HTTPHandler) home(w http.ResponseWriter, r *http.Request) {
+	page := Page{Title: "Home Page"}
+	if cookie, err := r.Cookie("user"); err == nil && cookie.Value != "" {
+		if exists, _ := user.UserExists(cookie.Value, h.db, h.ctx); exists {
+			page.LoggedIn, page.Username = true, cookie.Value
+		} else {
+			http.SetCookie(w, &http.Cookie{Name: "user", Value: "", Expires: time.Unix(0, 0), MaxAge: -1})
+		}
 	}
 
-	if _, err = h.db.Exec(query, args...); err != nil {
-		slog.Error("Error adding new user to the db.", "error", err)
-		w.Write([]byte("Error please try again."))
-		return
+	tmpl := "login"
+	if page.LoggedIn {
+		tmpl = "loggedIn"
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:  "user",
-		Value: username,
-	})
-
-	w.Write([]byte("WE'RE SO BACK"))
+	h.renderTemplate(w, tmpl, page)
 }
 
 func withDB(next http.Handler, db *sql.DB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), dbKey, db)
+		ctx := context.WithValue(r.Context(), "db", db)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 func main() {
-	var port string
-	flag.StringVar(&port, "port", "42069", "The port of the chat server")
+	port := flag.String("port", "42069", "The port to listen on")
 	flag.Parse()
 
 	db, err := sql.Open("sqlite3", "./dvorak-btw.sqlite")
 	if err != nil {
-		slog.Error("Couldn't seem to open database, my bad tbh", "error", err)
+		slog.Error("Error opening database", "error", err)
 		return
 	}
-
 	defer db.Close()
 
-	ctx := context.Background()
-	httpHandler := NewHTTPHandler(db, ctx)
+	httpHandler := NewHTTPHandler(db, context.Background())
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	http.Handle("/ws", withDB(http.HandlerFunc(ws.HandleWebsocket), db))
 	http.HandleFunc("/get-messages", ws.GetMessages)
 	http.HandleFunc("/get-users", httpHandler.getUsers)
 	http.HandleFunc("/user", httpHandler.addUser)
+	http.HandleFunc("/", httpHandler.home)
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		var page Page
-		page.Title = "Home Page"
-		cookie, err := r.Cookie("user")
-		if err == nil && len(cookie.Value) > 0 {
-			if exists, _ := user.UserExists(cookie.Value, db, ctx); exists {
-				page.UpdateValues(true, cookie.Value)
-			} else {
-				http.SetCookie(w, &http.Cookie{
-					Name:    "user",
-					Value:   "",
-					Expires: time.Unix(0, 0),
-					MaxAge:  -1,
-				})
-			}
-		}
-
-		if page.LoggedIn {
-			err = templates.ExecuteTemplate(w, "loggedIn", page)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-			}
-		} else {
-			err = templates.ExecuteTemplate(w, "login", page)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-			}
-		}
-	})
-
-	slog.Warn("Listening now on", "port", port)
-	slog.Error(
-		"Server is so joever",
-		"error", http.ListenAndServe(fmt.Sprintf(":%s", port), nil),
-	)
+	slog.Warn("Listening on", "port", *port)
+	slog.Error("Server error", "error", http.ListenAndServe(fmt.Sprintf(":%s", *port), nil))
 }

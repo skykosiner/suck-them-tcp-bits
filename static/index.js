@@ -10,7 +10,13 @@ const ws = new WebSocket(`ws://${host}/ws?name=${username}`)
 */
 ws.onmessage = function(event) {
     /** @type {import("./types.ts").Message}*/
-    const msg = JSON.parse(event.data);
+    let msg;
+    if (!event.data.includes("leaved")) {
+        msg = JSON.parse(event.data);
+    } else {
+        htmx.trigger("#users", "refresh");
+        return
+    }
 
     const messages = document.getElementById("messages");
     messages.innerHTML += `<p>${msg.username}: ${msg.message}</p>`;  // Update DOM if the element exists
