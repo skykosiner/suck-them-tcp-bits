@@ -143,7 +143,16 @@ func main() {
 		page.Title = "Home Page"
 		cookie, err := r.Cookie("user")
 		if err == nil && len(cookie.Value) > 0 {
-			page.UpdateValues(true, cookie.Value)
+			if exists, _ := user.UserExists(cookie.Value, db, ctx); exists {
+				page.UpdateValues(true, cookie.Value)
+			} else {
+				http.SetCookie(w, &http.Cookie{
+					Name:    "user",
+					Value:   "",
+					Expires: time.Unix(0, 0),
+					MaxAge:  -1,
+				})
+			}
 		}
 
 		if page.LoggedIn {
