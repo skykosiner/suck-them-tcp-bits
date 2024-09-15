@@ -5,13 +5,6 @@ const host = window.location.host;
 const username = document.cookie.split("=")[1]
 const ws = new WebSocket(`ws://${host}/ws?name=${username}`)
 
-// Reload page after user enters in username
-document.addEventListener("htmx:afterRequest", function(evt) {
-    if (evt.target.id === "usernameForm") {
-        window.location.reload();
-    }
-});
-
 /**
     * @param {import("./types.ts").WsMessage} event
 */
