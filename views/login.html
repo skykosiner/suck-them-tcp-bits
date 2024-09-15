@@ -1,0 +1,18 @@
+{{ block "login" . }}
+{{ template "header" . }}
+
+<div class="center">
+    <div>
+        <form hx-post="/user" hx-swap="innerHTML" hx-target="#usernameResp" id="usernameForm" onsubmit="return false;">
+            <input name="username" placeholder="Enter your username" type="text" />
+            <input type="submit" value="Set Name." />
+        </form>
+
+        <p id="usernameResp"></p>
+    </div>
+</div>
+
+<script src="/static/index.js"></script>
+
+{{ template "footer" }}
+{{ end }}

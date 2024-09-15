@@ -19,6 +19,7 @@ import (
 var templates = template.Must(template.ParseGlob("views/*.html"))
 
 type Page struct {
+	Title    string
 	LoggedIn bool
 	Username string
 }
@@ -139,14 +140,22 @@ func main() {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		var page Page
+		page.Title = "Home Page"
 		cookie, err := r.Cookie("user")
 		if err == nil && len(cookie.Value) > 0 {
 			page.UpdateValues(true, cookie.Value)
 		}
 
-		err = templates.ExecuteTemplate(w, "index", page)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		if page.LoggedIn {
+			err = templates.ExecuteTemplate(w, "loggedIn", page)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+		} else {
+			err = templates.ExecuteTemplate(w, "login", page)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 		}
 	})
 

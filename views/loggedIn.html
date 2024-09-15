@@ -1,0 +1,21 @@
+{{ block "loggedIn" . }}
+{{ template "header" . }}
+
+<div class="center">
+    <div>
+        <h1>Hello {{ .Username }}</h1>
+        <div id="users" hx-get="/get-users" hx-trigger="load" hx-swap="innerHTML"></div>
+
+        <div id="messages" hx-get="/get-messages" hx-trigger="load" hx-swap="innerHTML"></div>
+
+        <form action="" id="sendMessage">
+            <input type="text" placeholder="Send Message: " id="newMessage" />
+            <input type="submit" value="Send Message" />
+        </form>
+    </div>
+</div>
+
+<script src="/static/index.js"></script>
+
+{{ template "footer" }}
+{{ end }}
