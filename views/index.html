@@ -8,15 +8,18 @@
     <title>Control me bbg</title>
 
     <link rel="stylesheet" href="/static/index.css" />
+    <script src="https://unpkg.com/htmx.org@2.0.2"></script>
 </head>
 
 <body>
     <div class="center">
         <div>
-            <form action="" id="setUsername">
-                <input type="text" placeholder="Please enter your username" id="username" />
-                <input type="submit" value="Set username" />
+            <form hx-post="/user" hx-swap="afterend" hx-target="#usernameResp">
+                <input name="username" placeholder="Enter your username" type="text" />
+                <input type="submit" value="Set Name." />
             </form>
+
+            <p id="usernameResp"></p>
 
             <div class="hide" id="messages"></div>
 
