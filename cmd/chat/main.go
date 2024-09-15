@@ -40,6 +40,32 @@ func NewHTTPHandler(db *sql.DB, ctx context.Context) *HTTPHandler {
 	}
 }
 
+func (h *HTTPHandler) getUsers(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(h.ctx, 2*time.Second)
+	defer cancel()
+
+	users, err := user.GetUsers(ctx, h.db)
+	if err != nil {
+		slog.Error("Error getting all the users", "error", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("It's so over"))
+		return
+	}
+
+	tmpl := `<ul>
+	{{range .}}
+		<li>{{.Username}}</li>
+	{{end}}
+</ul>`
+	t, err := template.New("users").Parse(tmpl)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	t.Execute(w, users)
+}
+
 func (h *HTTPHandler) addUser(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -108,7 +134,7 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	http.HandleFunc("/ws", ws.HandleWebsocket)
 	http.HandleFunc("/get-messages", ws.GetMessages)
-
+	http.HandleFunc("/get-users", httpHandler.getUsers)
 	http.HandleFunc("/user", httpHandler.addUser)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

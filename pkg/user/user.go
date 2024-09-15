@@ -8,6 +8,10 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
+type User struct {
+	Username string `json:"username" sql:"username"`
+}
+
 func UserExists(username string, db *sql.DB, ctx context.Context) (bool, error) {
 	// Check if the user already exists
 	query, args, err := sq.Select("1").
@@ -51,4 +55,30 @@ func DeleteUserFromDb(username string, db *sql.DB) error {
 	}
 
 	return nil
+}
+
+func GetUsers(ctx context.Context, db *sql.DB) ([]User, error) {
+	var users []User
+	rows, err := sq.Select("*").From("users").RunWith(db).Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var user User
+		if err := rows.Scan(&user.Username); err != nil {
+			return nil, err
+		}
+
+		users = append(users, user)
+	}
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+		return users, nil
+	}
 }

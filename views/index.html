@@ -16,7 +16,9 @@
         <div>
             {{ if .LoggedIn }}
             <h1>Hello {{ .Username }}</h1>
-            <div id="messages"></div>
+            <div id="users" hx-get="/get-users" hx-trigger="load" hx-swap="innerHTML"></div>
+
+            <div id="messages" hx-get="/get-messages" hx-trigger="load" hx-swap="innerHTML"></div>
 
             <form action="" id="sendMessage">
                 <input type="text" placeholder="Send Message: " id="newMessage" />

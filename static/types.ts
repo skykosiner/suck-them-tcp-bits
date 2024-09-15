@@ -4,6 +4,10 @@ export type WsMessage = {
 }
 
 export type Message = {
-    name: string,
+    username: string,
     message: string,
+}
+
+export type User = {
+    username: string,
 }

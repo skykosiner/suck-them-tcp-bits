@@ -2,17 +2,17 @@ package ws
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"net/http"
 	"sync"
+	"text/template"
 
 	"github.com/gorilla/websocket"
 )
 
 type Message struct {
-	Name    string `json:"name"`
-	Message string `json:"message"`
+	Username string `json:"username"`
+	Message  string `json:"message"`
 }
 
 var (
@@ -44,6 +44,9 @@ func HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 		clientsMu.Lock()
 		delete(clients, ws)
 		clientsMu.Unlock()
+
+		//
+
 		ws.Close()
 	}()
 
@@ -79,12 +82,16 @@ func HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetMessages(w http.ResponseWriter, r *http.Request) {
-	jsonMessages, err := json.Marshal(&messages)
+	tmpl := `<div>
+	{{range .}}
+		<p>{{.Username}}:  {{.Message}}</p>
+	{{end}}
+</div>`
+	t, err := template.New("messages").Parse(tmpl)
 	if err != nil {
-		slog.Error("Error sending the messages.", "err", err)
-		w.Write([]byte("It's so over."))
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	w.Write(jsonMessages)
+	w.Header().Set("Content-Type", "text/html")
+	t.Execute(w, messages)
 }
