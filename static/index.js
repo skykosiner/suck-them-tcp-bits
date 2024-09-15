@@ -1,8 +1,15 @@
-const usernameForm = document.getElementById("setUsername");
 const messagesDiv = document.getElementById("messages");
 const newMessageForm = document.getElementById("sendMessage");
 const host = window.location.host;
+const username = document.cookie.split("=")[1]
 const ws = new WebSocket(`ws://${host}/ws`)
+
+// Reload page after user enters in username
+document.addEventListener("htmx:afterRequest", function(evt) {
+    if (evt.target.id === "usernameForm") {
+        window.location.reload();
+    }
+});
 
 /**
     * Updates the #messages div with all the old messages currently stored on the server
@@ -33,24 +40,6 @@ ws.onerror = function(event) {
     console.log("It's so over. Websocket error", event);
 }
 
-usernameForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    /** @type {string} */
-    const username = document.getElementById("username").value.trim();
-
-    if (username !== "") {
-        sessionStorage.setItem("username", username);
-    }
-
-    if (username) {
-        // Proceed with username setting
-        usernameForm.classList.add('hide');
-        newMessageForm.classList.remove('hide');
-        messagesDiv.classList.remove('hide');
-    }
-});
-
-
 newMessageForm.addEventListener("submit", (e) => {
     e.preventDefault();
 
@@ -60,7 +49,7 @@ newMessageForm.addEventListener("submit", (e) => {
     if (message.trim() !== "") {
         /** @type {import("./types.ts").Message}*/
         const msg = {
-            name: sessionStorage.getItem("username"),
+            name: username,
             message,
         }
 

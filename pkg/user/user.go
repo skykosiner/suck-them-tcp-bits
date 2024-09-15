@@ -39,3 +39,16 @@ func UserExists(username string, db *sql.DB, ctx context.Context) (bool, error) 
 		return true, nil
 	}
 }
+
+func DeleteUserFromDb(username string, db *sql.DB) error {
+	query, args, err := sq.Delete("users").Where(sq.Eq{"useurname": username}).ToSql()
+	if err != nil {
+		return err
+	}
+
+	if _, err := db.Exec(query, args); err != nil {
+		return err
+	}
+
+	return nil
+}

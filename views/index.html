@@ -14,19 +14,24 @@
 <body>
     <div class="center">
         <div>
-            <form hx-post="/user" hx-swap="afterend" hx-target="#usernameResp">
+            {{ if .LoggedIn }}
+            <h1>Hello {{ .Username }}</h1>
+            <div id="messages"></div>
+
+            <form action="" id="sendMessage">
+                <input type="text" placeholder="Send Message: " id="newMessage" />
+                <input type="submit" value="Send Message" />
+            </form>
+            {{ else }}
+            <form hx-post="/user" hx-swap="innerHTML" hx-target="#usernameResp" id="usernameForm"
+                onsubmit="return false;">
                 <input name="username" placeholder="Enter your username" type="text" />
                 <input type="submit" value="Set Name." />
             </form>
 
             <p id="usernameResp"></p>
+            {{ end }}
 
-            <div class="hide" id="messages"></div>
-
-            <form class="hide" action="" id="sendMessage">
-                <input type="text" placeholder="Send Message: " id="newMessage" />
-                <input type="submit" value="Send Message" />
-            </form>
         </div>
     </div>
 

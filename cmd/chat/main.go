@@ -19,12 +19,18 @@ import (
 var templates = template.Must(template.ParseGlob("views/*.html"))
 
 type Page struct {
-	// Port string
+	LoggedIn bool
+	Username string
 }
 
 type HTTPHandler struct {
 	ctx context.Context
 	db  *sql.DB
+}
+
+func (p *Page) UpdateValues(loggedIn bool, username string) {
+	p.LoggedIn = loggedIn
+	p.Username = username
 }
 
 func NewHTTPHandler(db *sql.DB, ctx context.Context) *HTTPHandler {
@@ -75,6 +81,11 @@ func (h *HTTPHandler) addUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	http.SetCookie(w, &http.Cookie{
+		Name:  "user",
+		Value: username,
+	})
+
 	w.Write([]byte("WE'RE SO BACK"))
 }
 
@@ -101,7 +112,13 @@ func main() {
 	http.HandleFunc("/user", httpHandler.addUser)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		err := templates.ExecuteTemplate(w, "index", Page{})
+		var page Page
+		cookie, err := r.Cookie("user")
+		if err == nil && len(cookie.Value) > 0 {
+			page.UpdateValues(true, cookie.Value)
+		}
+
+		err = templates.ExecuteTemplate(w, "index", page)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
