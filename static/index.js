@@ -3,7 +3,7 @@ const usersDiv = document.getElementById("users");
 const newMessageForm = document.getElementById("sendMessage");
 const host = window.location.host;
 const username = document.cookie.split("=")[1]
-const ws = new WebSocket(`ws://${host}/ws`)
+const ws = new WebSocket(`ws://${host}/ws?name=${username}`)
 
 // Reload page after user enters in username
 document.addEventListener("htmx:afterRequest", function(evt) {

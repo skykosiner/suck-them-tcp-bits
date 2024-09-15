@@ -2,12 +2,15 @@ package ws
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"sync"
 	"text/template"
 
 	"github.com/gorilla/websocket"
+	"github.com/skykosiner/golang-context/pkg/user"
 )
 
 type Message struct {
@@ -16,7 +19,7 @@ type Message struct {
 }
 
 var (
-	clients   = make(map[*websocket.Conn]bool)
+	clients   = make(map[*websocket.Conn]string)
 	clientsMu sync.Mutex // Ensure thread-safe access to the clients map
 	upgrader  = websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -29,24 +32,39 @@ var (
 )
 
 func HandleWebsocket(w http.ResponseWriter, r *http.Request) {
+	db, ok := r.Context().Value("db").(*sql.DB)
+	if !ok {
+		slog.Error("It's so over there' no db")
+		http.Error(w, "Database in not available it's over.", http.StatusInternalServerError)
+		return
+	}
+
+	username := r.URL.Query().Get("name")
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		slog.Error("Websocket connection upgrade failed", "err", err)
 	}
 
 	clientsMu.Lock()
-	clients[ws] = true
+	clients[ws] = username
+	fmt.Println(clients)
 	clientsMu.Unlock()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer func() {
 		cancel()
 		clientsMu.Lock()
+		username := clients[ws]
+
+		err := user.DeleteUserFromDb(username, db)
+		if err != nil {
+			slog.Error("it's so over", "error", err)
+			http.Error(w, "It's Joever", http.StatusInternalServerError)
+			return
+		}
+
 		delete(clients, ws)
 		clientsMu.Unlock()
-
-		//
-
 		ws.Close()
 	}()
 

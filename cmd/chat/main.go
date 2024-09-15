@@ -18,6 +18,8 @@ import (
 
 var templates = template.Must(template.ParseGlob("views/*.html"))
 
+const dbKey string = "db"
+
 type Page struct {
 	Title    string
 	LoggedIn bool
@@ -116,6 +118,13 @@ func (h *HTTPHandler) addUser(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("WE'RE SO BACK"))
 }
 
+func withDB(next http.Handler, db *sql.DB) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), dbKey, db)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 func main() {
 	var port string
 	flag.StringVar(&port, "port", "42069", "The port of the chat server")
@@ -133,7 +142,7 @@ func main() {
 	httpHandler := NewHTTPHandler(db, ctx)
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
-	http.HandleFunc("/ws", ws.HandleWebsocket)
+	http.Handle("/ws", withDB(http.HandlerFunc(ws.HandleWebsocket), db))
 	http.HandleFunc("/get-messages", ws.GetMessages)
 	http.HandleFunc("/get-users", httpHandler.getUsers)
 	http.HandleFunc("/user", httpHandler.addUser)
